@@ -1,0 +1,16 @@
+.env
+
+# CSV exports
+imports
+
+# Go related
+bin
+
+# ISIN MAP
+isin_map.json
+
+# MacOS related
+.DS_Store
+
+# Google related
+credentials.json
