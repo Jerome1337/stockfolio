@@ -21,8 +21,9 @@ func main() {
 	logger, _ = zap.NewDevelopment()
 	defer logger.Sync()
 
+	// Optional: in a container the values come from the environment.
 	if err := godotenv.Load(".env"); err != nil {
-		logger.Fatal("load .env", zap.Error(err))
+		logger.Warn("no .env file, using environment", zap.Error(err))
 	}
 
 	port := os.Getenv("PORT")
