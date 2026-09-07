@@ -27,6 +27,9 @@ func main() {
 		port = "8080"
 	}
 
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
 	http.HandleFunc("/stockfolio/report/generate", handleGenerate)
 
 	logger.Info("listening", zap.String("addr", ":"+port))

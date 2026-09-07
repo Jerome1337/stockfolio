@@ -32,7 +32,7 @@ Automatize using n8n or whatever and get the report directly in your own Discord
 Two entrypoints share the same pipeline (`src/app`):
 
 - `cmd/report` — CLI, prints the report and exits.
-- `cmd/server` — HTTP handler, `POST /stockfolio/report/generate` runs the same thing and returns the text as JSON.
+- `cmd/server` — HTTP handler, `POST /stockfolio/report/generate` runs the same thing and returns the text as JSON. `GET /health` answers `ok` for health checks.
 
 ### Configuration
 
@@ -86,6 +86,28 @@ stockfolio.example.com {
 ```
 
 The endpoint has no authentication of its own: anyone who can reach it triggers a run, a sheet write and a Discord post. Keep it off the public internet, or put a check in front of it — Caddy `basic_auth`, an IP filter, or a token header.
+
+### Coolify
+
+Coolify builds the Dockerfile straight from the repository and puts its own proxy and TLS in front, so the reverse proxy section above only applies outside Coolify.
+
+1. **New Resource → Application →** your Git repository, branch `main`.
+2. **Build Pack:** `Dockerfile`. **Ports Exposes:** `8080`.
+3. **Environment Variables:** everything from the table above. `GOOGLE_CREDENTIALS_PATH=/app/credentials.json` and `HISTORY_DIR=/app/history`.
+4. **Storages → Add File Mount:** `/app/credentials.json` with the service account JSON as its content, and `/app/isin_map.json` with the ISIN map.
+5. **Storages → Add Volume Mount:** any name, mounted at `/app/history`. Without it the snapshots die with each deployment and every report shows no deltas.
+6. **Health Check:** path `/health`, port `8080`.
+7. **Domains:** set the FQDN, Coolify issues the certificate.
+
+Redeploys wipe the container filesystem, so anything that must survive one belongs in a file or volume mount.
+
+**Scheduled Tasks** then replaces an external scheduler — add one on the application with the container command:
+
+```bash
+wget -q -O- --post-data='' http://localhost:8080/stockfolio/report/generate
+```
+
+Frequency `0 8 * * 1` runs it every Monday at 08:00.
 
 ### Scheduling
 
