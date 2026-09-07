@@ -146,3 +146,30 @@ func GetAnnualDividend(ticker string) (float64, error) {
 
 	return yahooChart.Chart.Result[0].Meta.TrailingAnnualDividendRate, nil
 }
+
+const yahooSearchURL = "https://query1.finance.yahoo.com/v1/finance/search?quotesCount=1&newsCount=0&q="
+
+func ResolveSymbol(isin string) (string, error) {
+	resp, err := http.Get(yahooSearchURL + isin)
+	if err != nil {
+		return "", fmt.Errorf("search %s: %w", isin, err)
+	}
+
+	defer resp.Body.Close()
+
+	var search struct {
+		Quotes []struct {
+			Symbol string `json:"symbol"`
+		} `json:"quotes"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&search); err != nil {
+		return "", fmt.Errorf("decode search %s: %w", isin, err)
+	}
+
+	if len(search.Quotes) == 0 || search.Quotes[0].Symbol == "" {
+		return "", fmt.Errorf("no symbol found for %s", isin)
+	}
+
+	return search.Quotes[0].Symbol, nil
+}

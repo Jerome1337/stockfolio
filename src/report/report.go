@@ -59,6 +59,13 @@ func Build(gs *storage.Client) (*Report, error) {
 
 		quote, err := finance.GetQuote(yahooTicker)
 		if err != nil {
+			if symbol, resErr := finance.ResolveSymbol(yahooTicker); resErr == nil {
+				yahooTicker = symbol
+				quote, err = finance.GetQuote(yahooTicker)
+			}
+		}
+
+		if err != nil {
 			p.Flag = "REVIEW"
 			p.FlagReason = fmt.Sprintf("could not fetch price: %v", err)
 
