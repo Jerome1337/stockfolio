@@ -26,6 +26,9 @@ Automatize using n8n or whatever and get the report directly in your own Discord
 
 - Discord
 
+## Self-hosting
+
+See [docs/deployment.md](docs/deployment.md) for configuration, Docker, Coolify and scheduling.
 
 ## Contributing
 
