@@ -19,12 +19,22 @@ type Client struct {
 func New() (*Client, error) {
 	ctx := context.Background()
 
-	credPath := os.Getenv("GOOGLE_CREDENTIALS_PATH")
 	sheetID := os.Getenv("SHEET_ID")
 
-	b, err := os.ReadFile(credPath)
-	if err != nil {
-		return nil, fmt.Errorf("read credentials: %w", err)
+	b := []byte(os.Getenv("GOOGLE_CREDENTIALS_JSON"))
+
+	if len(b) == 0 {
+		credPath := os.Getenv("GOOGLE_CREDENTIALS_PATH")
+		if credPath == "" {
+			return nil, fmt.Errorf("set GOOGLE_CREDENTIALS_JSON or GOOGLE_CREDENTIALS_PATH")
+		}
+
+		var err error
+
+		b, err = os.ReadFile(credPath)
+		if err != nil {
+			return nil, fmt.Errorf("read credentials: %w", err)
+		}
 	}
 
 	cfg, err := google.JWTConfigFromJSON(b, sheets.SpreadsheetsScope)
