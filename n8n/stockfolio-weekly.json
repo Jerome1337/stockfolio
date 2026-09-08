@@ -1,0 +1,57 @@
+{
+  "name": "Stockfolio weekly report",
+  "nodes": [
+    {
+      "id": "5c1e0a10-1111-4a01-9c01-000000000001",
+      "name": "Every Monday 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [1],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5c1e0a10-1111-4a01-9c01-000000000002",
+      "name": "Generate report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "https://stockfolio.jpc.dev/stockfolio/report/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Stockfolio basic auth"
+        }
+      },
+      "notes": "Create a Basic Auth credential in n8n and select it here; the id above is a placeholder. The handler posts to Discord itself and returns {\"text\": ...}."
+    }
+  ],
+  "connections": {
+    "Every Monday 08:00": {
+      "main": [[{ "node": "Generate report", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "pinData": {}
+}

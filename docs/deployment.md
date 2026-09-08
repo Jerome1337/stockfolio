@@ -9,7 +9,8 @@ Two entrypoints share the same pipeline (`src/app`):
 
 | Variable | Required | Default | Notes |
 | --- | --- | --- | --- |
-| `GOOGLE_CREDENTIALS_PATH` | yes | — | Service account JSON, must have access to the sheet |
+| `GOOGLE_CREDENTIALS_JSON` | one of the two | — | The service account JSON itself, for containers with no file mount |
+| `GOOGLE_CREDENTIALS_PATH` | one of the two | — | Path to the service account JSON. Ignored when `GOOGLE_CREDENTIALS_JSON` is set |
 | `SHEET_ID` | yes | — | Google Sheet used as source of truth |
 | `HISTORY_DIR` | no | `./history` | Weekly snapshots, needed for week-over-week deltas |
 | `PORT` | no | `8080` | Server only |
@@ -17,7 +18,7 @@ Two entrypoints share the same pipeline (`src/app`):
 | `DISCORD_WEBHOOK_URL` | if enabled | — | Discord webhook |
 | `IMPORTS_DIR` | no | `./imports` | Broker CSVs, `cmd/import_csv` only |
 
-The CLI reads `.env` and fails without it. The server prefers the environment and only warns when `.env` is missing, so a container needs no file.
+The service account, however it is provided, must have access to the sheet. The CLI reads `.env` and fails without it. The server prefers the environment and only warns when `.env` is missing, so a container needs no file.
 
 `isin_map.json` at the working directory maps an ISIN to its Yahoo symbol (`"FR0013412269": "PANX.PA"`). It is optional: unknown ISINs fall back to a Yahoo symbol search, but an entry pins the listing and saves a request.
 
@@ -36,17 +37,16 @@ Run it from the repository root so `.env`, `isin_map.json` and `history/` resolv
 docker build -t stockfolio .
 
 docker run -d --name stockfolio -p 8080:8080 \
-  -e GOOGLE_CREDENTIALS_PATH=/app/credentials.json \
+  -e GOOGLE_CREDENTIALS_JSON="$(cat credentials.json)" \
   -e SHEET_ID=your_sheet_id \
   -e DISCORD_ENABLED=true \
   -e DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy \
-  -v $PWD/credentials.json:/app/credentials.json:ro \
   -v $PWD/isin_map.json:/app/isin_map.json:ro \
   -v stockfolio-history:/app/history \
   stockfolio
 ```
 
-Credentials, the ISIN map and the snapshots stay out of the image and are mounted at runtime. `GOOGLE_CREDENTIALS_PATH` must point inside the container, not at a host path. Mount `history/` as a volume or every run starts with no previous snapshot and reports no deltas.
+Credentials, the ISIN map and the snapshots stay out of the image. If you mount the credentials as a file instead, `GOOGLE_CREDENTIALS_PATH` must point inside the container, not at a host path. Mount `history/` as a volume or every run starts with no previous snapshot and reports no deltas.
 
 ## Reverse proxy
 
@@ -64,8 +64,8 @@ Coolify builds the Dockerfile straight from the repository and puts its own prox
 
 1. **New Resource → Application →** your Git repository, branch `main`.
 2. **Build Pack:** `Dockerfile`. **Ports Exposes:** `8080`.
-3. **Environment Variables:** everything from the table above. `GOOGLE_CREDENTIALS_PATH=/app/credentials.json` and `HISTORY_DIR=/app/history`.
-4. **Storages → Add File Mount:** `/app/credentials.json` with the service account JSON as its content, and `/app/isin_map.json` with the ISIN map.
+3. **Environment Variables:** everything from the table above, plus `HISTORY_DIR=/app/history`. Paste the whole service account JSON into `GOOGLE_CREDENTIALS_JSON` as a secret — one line, no file mount, nothing to go missing on redeploy.
+4. **Storages → Add File Mount** (optional): `/app/isin_map.json` with the ISIN map. Skip it and unknown ISINs resolve through Yahoo search instead.
 5. **Storages → Add Volume Mount:** any name, mounted at `/app/history`. Without it the snapshots die with each deployment and every report shows no deltas.
 6. **Health Check:** path `/health`, port `8080`.
 7. **Domains:** set the FQDN, Coolify issues the certificate.
